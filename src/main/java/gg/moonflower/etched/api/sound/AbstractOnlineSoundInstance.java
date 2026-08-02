@@ -1,5 +1,6 @@
 package gg.moonflower.etched.api.sound;
 
+import gg.moonflower.etched.EtchedClientConfig;
 import gg.moonflower.etched.api.record.TrackData;
 import gg.moonflower.etched.api.sound.source.AudioSource;
 import gg.moonflower.etched.api.sound.stream.MonoWrapper;
@@ -9,7 +10,7 @@ import gg.moonflower.etched.api.util.Mp3InputStream;
 import gg.moonflower.etched.api.util.WaveDataReader;
 import gg.moonflower.etched.client.sound.EmptyAudioStream;
 import gg.moonflower.etched.client.sound.SoundCache;
-import gg.moonflower.etched.core.Etched;
+import gg.moonflower.etched.Etched;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.AbstractSoundInstance;
@@ -22,6 +23,7 @@ import net.minecraft.util.valueproviders.ConstantFloat;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.sound.sampled.AudioFormat;
@@ -30,8 +32,6 @@ import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
@@ -50,13 +50,13 @@ public class AbstractOnlineSoundInstance extends AbstractSoundInstance {
     private final boolean stereo;
 
     public AbstractOnlineSoundInstance(String url, @Nullable String subtitle, int attenuationDistance, SoundSource source, DownloadProgressListener progressListener, AudioSource.AudioFileType type, boolean stereo) {
-        super(Etched.etchedPath(DigestUtils.sha1Hex(url)), source, SoundInstance.createUnseededRandom());
+        super(Etched.id(DigestUtils.sha1Hex(url)), source, SoundInstance.createUnseededRandom());
         this.url = url;
         this.subtitle = subtitle;
         this.attenuationDistance = attenuationDistance;
         this.progressListener = progressListener;
         this.type = type;
-        this.stereo = Etched.CLIENT_CONFIG.forceStereo.get() || stereo;
+        this.stereo = EtchedClientConfig.INSTANCE.forceStereo() || stereo;
     }
 
     private static AudioStream getStream(AudioStream stream, Sound sound) {
@@ -64,22 +64,22 @@ public class AbstractOnlineSoundInstance extends AbstractSoundInstance {
     }
 
     @Override
-    public WeighedSoundEvents resolve(SoundManager soundManager) {
+    public @NotNull WeighedSoundEvents resolve(SoundManager soundManager) {
         WeighedSoundEvents weighedSoundEvents = new WeighedSoundEvents(this.getLocation(), this.subtitle);
         weighedSoundEvents.addSound(new OnlineSound(this.getLocation(), this.url, this.attenuationDistance, this.progressListener, this.type, this.stereo));
         this.sound = weighedSoundEvents.getSound(this.random);
         return weighedSoundEvents;
     }
 
-    public AbstractOnlineSoundInstance setLoop(boolean loop) {
+    public void setLoop(boolean loop) {
         this.looping = loop;
-        return this;
     }
 
     @Override
-    public CompletableFuture<AudioStream> getStream(SoundBufferLibrary loader, Sound sound, boolean repeatInstantly) {
+    public CompletableFuture<AudioStream> getAudioStream(SoundBufferLibrary loader, ResourceLocation id, boolean repeatInstantly) {
+        Sound sound = getSound();
         if (!(sound instanceof OnlineSound onlineSound)) {
-            return super.getStream(loader, sound, repeatInstantly);
+            return super.getAudioStream(loader, id, repeatInstantly);
         }
 
         if (TrackData.isLocalSound(onlineSound.getURL())) {

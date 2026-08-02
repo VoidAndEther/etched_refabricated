@@ -1,6 +1,6 @@
 package gg.moonflower.etched.client.render;
 
-import gg.moonflower.etched.core.Etched;
+import gg.moonflower.etched.Etched;
 import net.minecraft.client.model.geom.ModelLayerLocation;
 
 public class EtchedModelLayers {
@@ -12,6 +12,6 @@ public class EtchedModelLayers {
     }
 
     public static ModelLayerLocation create(String model, String layer) {
-        return new ModelLayerLocation(Etched.etchedPath(model), layer);
+        return new ModelLayerLocation(Etched.id(model), layer);
     }
 }

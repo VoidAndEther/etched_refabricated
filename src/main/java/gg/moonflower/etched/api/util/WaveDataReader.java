@@ -136,7 +136,7 @@ public class WaveDataReader {
         // and what we read
 
         // if the length of the chunk is odd, there's an extra pad byte
-        // at the end.  i've never seen this in the fmt chunk, but we
+        // at the end.  I've never seen this in the fmt chunk, but we
         // should check to make sure.
 
         // $$jb: 07.28.99: endLength>nread, not length>nread.

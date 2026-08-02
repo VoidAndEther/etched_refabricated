@@ -6,14 +6,22 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import gg.moonflower.etched.api.record.AlbumCover;
 import gg.moonflower.etched.api.record.PlayableRecord;
-import gg.moonflower.etched.common.component.AlbumCoverComponent;
-import gg.moonflower.etched.core.Etched;
-import gg.moonflower.etched.core.registry.EtchedComponents;
+import gg.moonflower.etched.registry.component.AlbumCoverComponent;
+import gg.moonflower.etched.Etched;
+import gg.moonflower.etched.registry.component.EtchedComponents;
+import gg.moonflower.etched.mixin.client.render.SpriteContentsAccessor;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
+import net.fabricmc.fabric.api.client.networking.v1.ClientLoginConnectionEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
+import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientHandshakePacketListenerImpl;
+import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.BlockModel;
 import net.minecraft.client.renderer.block.model.ItemModelGenerator;
@@ -29,17 +37,15 @@ import net.minecraft.client.resources.model.ModelManager;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.PreparableReloadListener;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceMetadata;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
-import net.neoforged.neoforge.common.NeoForge;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.NotNull;
 import org.lwjgl.system.NativeResource;
 
 import java.io.IOException;
@@ -54,14 +60,14 @@ import java.util.concurrent.Executor;
 /**
  * @author Ocelot
  */
-public class AlbumCoverItemRenderer extends BlockEntityWithoutLevelRenderer implements PreparableReloadListener {
-
+public class AlbumCoverItemRenderer implements IdentifiableResourceReloadListener, BuiltinItemRendererRegistry.DynamicItemRenderer {
+    public static final ResourceLocation IDENTIFIER = Etched.id("reload_listener");
     public static final AlbumCoverItemRenderer INSTANCE = new AlbumCoverItemRenderer();
-    public static final String FOLDER_NAME = "item/" + Etched.MOD_ID + "_album_cover";
+    public static final String DIRECTORY = Etched.MOD_ID + "_album_cover";
 
-    public static final ModelResourceLocation BLANK_ALBUM_COVER = new ModelResourceLocation(Etched.etchedPath(FOLDER_NAME + "/blank"), "standalone");
-    public static final ModelResourceLocation DEFAULT_ALBUM_COVER = new ModelResourceLocation(Etched.etchedPath(FOLDER_NAME + "/default"), "standalone");
-    private static final ResourceLocation ALBUM_COVER_OVERLAY = Etched.etchedPath("textures/item/album_cover_overlay.png");
+    public static final ModelResourceLocation BLANK_ALBUM_COVER = ModelResourceLocation.inventory(Etched.id(DIRECTORY + "/blank"));
+    public static final ModelResourceLocation DEFAULT_ALBUM_COVER = ModelResourceLocation.inventory(Etched.id(DIRECTORY + "/default"));
+    private static final ResourceLocation ALBUM_COVER_OVERLAY = Etched.id("textures/item/album_cover_overlay.png");
 
     private static final ItemModelGenerator ITEM_MODEL_GENERATOR = new ItemModelGenerator();
     private static final BlockModel MODEL = BlockModel.fromString("{\"gui_light\":\"front\",\"textures\":{\"layer0\":\"texture\"},\"display\":{\"ground\":{\"rotation\":[0,0,0],\"translation\":[0,2,0],\"scale\":[0.5,0.5,0.5]},\"head\":{\"rotation\":[0,180,0],\"translation\":[0,13,7],\"scale\":[1,1,1]},\"thirdperson_righthand\":{\"rotation\":[0,0,0],\"translation\":[0,3,1],\"scale\":[0.55,0.55,0.55]},\"firstperson_righthand\":{\"rotation\":[0,-90,25],\"translation\":[1.13,3.2,1.13],\"scale\":[0.68,0.68,0.68]},\"fixed\":{\"rotation\":[0,180,0],\"scale\":[1,1,1]}}}");
@@ -69,12 +75,15 @@ public class AlbumCoverItemRenderer extends BlockEntityWithoutLevelRenderer impl
     private final Map<Integer, CompletableFuture<EtchedModelData>> covers;
     private CoverData data;
 
-    static {
-        NeoForge.EVENT_BUS.<ClientPlayerNetworkEvent.LoggingOut>addListener(event -> INSTANCE.close());
+    public static void register() {
+        ClientPlayConnectionEvents.DISCONNECT.register(AlbumCoverItemRenderer::onPlayDisconnect);
+    }
+
+    private static void onPlayDisconnect(ClientPacketListener handler, Minecraft client) {
+        INSTANCE.close();
     }
 
     private AlbumCoverItemRenderer() {
-        super(null, null);
         this.covers = new Int2ObjectArrayMap<>();
         this.data = null;
     }
@@ -83,16 +92,16 @@ public class AlbumCoverItemRenderer extends BlockEntityWithoutLevelRenderer impl
         return INSTANCE.data.overlay.getImage();
     }
 
-    private static void renderModelLists(BakedModel model, int combinedLight, int combinedOverlay, PoseStack matrixStack, VertexConsumer buffer, RenderType renderType) {
+    private static void renderModelLists(BakedModel model, int combinedLight, int combinedOverlay, PoseStack matrixStack, VertexConsumer buffer, RenderType ignored) {
         RandomSource randomsource = RandomSource.create();
 
         for (Direction direction : Direction.values()) {
             randomsource.setSeed(42L);
-            renderQuadList(matrixStack, buffer, model.getQuads(null, direction, randomsource, net.neoforged.neoforge.client.model.data.ModelData.EMPTY, renderType), combinedLight, combinedOverlay);
+            renderQuadList(matrixStack, buffer, model.getQuads(null, direction, randomsource), combinedLight, combinedOverlay);
         }
 
         randomsource.setSeed(42L);
-        renderQuadList(matrixStack, buffer, model.getQuads(null, null, randomsource, net.neoforged.neoforge.client.model.data.ModelData.EMPTY, renderType), combinedLight, combinedOverlay);
+        renderQuadList(matrixStack, buffer, model.getQuads(null, null, randomsource), combinedLight, combinedOverlay);
     }
 
     private static void renderQuadList(PoseStack matrixStack, VertexConsumer buffer, List<BakedQuad> quads, int combinedLight, int combinedOverlay) {
@@ -102,6 +111,7 @@ public class AlbumCoverItemRenderer extends BlockEntityWithoutLevelRenderer impl
         }
     }
 
+    @SuppressWarnings("CallToPrintStackTrace")
     private static NativeImage getCoverOverlay(ResourceManager resourceManager) {
         try {
             try (InputStream stream = resourceManager.getResourceOrThrow(AlbumCoverItemRenderer.ALBUM_COVER_OVERLAY).open()) {
@@ -136,7 +146,7 @@ public class AlbumCoverItemRenderer extends BlockEntityWithoutLevelRenderer impl
     }
 
     @Override
-    public CompletableFuture<Void> reload(PreparableReloadListener.PreparationBarrier preparationBarrier, ResourceManager resourceManager, ProfilerFiller preparationsProfiler, ProfilerFiller reloadProfiler, Executor backgroundExecutor, Executor gameExecutor) {
+    public @NotNull CompletableFuture<Void> reload(PreparationBarrier preparationBarrier, ResourceManager resourceManager, ProfilerFiller preparationsProfiler, ProfilerFiller reloadProfiler, Executor backgroundExecutor, Executor gameExecutor) {
         return CompletableFuture.supplyAsync(() -> new CoverData(getCoverOverlay(resourceManager)), backgroundExecutor)
                 .thenCompose(preparationBarrier::wait)
                 .thenAcceptAsync(data -> {
@@ -149,7 +159,7 @@ public class AlbumCoverItemRenderer extends BlockEntityWithoutLevelRenderer impl
     }
 
     @Override
-    public void renderByItem(ItemStack stack, ItemDisplayContext displayContext, PoseStack poseStack, MultiBufferSource buffer, int packedLight, int packedOverlay) {
+    public void render(ItemStack stack, ItemDisplayContext mode, PoseStack matrices, MultiBufferSource vertexConsumers, int light, int overlay) {
         if (stack.isEmpty()) {
             return;
         }
@@ -171,10 +181,15 @@ public class AlbumCoverItemRenderer extends BlockEntityWithoutLevelRenderer impl
             }
         }
 
-        poseStack.pushPose();
-        poseStack.translate(0.5D, 0.5D, 0.5D);
-        model.render(stack, displayContext, poseStack, buffer, packedLight, packedOverlay);
-        poseStack.popPose();
+        matrices.pushPose();
+        matrices.translate(0.5D, 0.5D, 0.5D);
+        model.render(stack, mode, matrices, vertexConsumers, light, overlay);
+        matrices.popPose();
+    }
+
+    @Override
+    public ResourceLocation getFabricId() {
+        return IDENTIFIER;
     }
 
     private static class CoverData {
@@ -240,11 +255,11 @@ public class AlbumCoverItemRenderer extends BlockEntityWithoutLevelRenderer impl
 
     private static final class DynamicModelData extends TextureAtlasSprite implements EtchedModelData {
 
-        private static final ResourceLocation ATLAS = Etched.etchedPath(DigestUtils.md5Hex(UUID.randomUUID().toString()));
+        private static final ResourceLocation ATLAS = Etched.id(DigestUtils.md5Hex(UUID.randomUUID().toString()));
         private BakedModel model;
 
         private DynamicModelData(NativeImage image) {
-            super(ATLAS, new SpriteContents(Etched.etchedPath(DigestUtils.md5Hex(UUID.randomUUID().toString())), new FrameSize(image.getWidth(), image.getHeight()), image, ResourceMetadata.EMPTY), image.getWidth(), image.getHeight(), 0, 0);
+            super(ATLAS, new SpriteContents(Etched.id(DigestUtils.md5Hex(UUID.randomUUID().toString())), new FrameSize(image.getWidth(), image.getHeight()), image, ResourceMetadata.EMPTY), image.getWidth(), image.getHeight(), 0, 0);
         }
 
         @Override
@@ -253,13 +268,13 @@ public class AlbumCoverItemRenderer extends BlockEntityWithoutLevelRenderer impl
             if (model.isCustomRenderer()) {
                 return;
             }
-            model.applyTransform(transformType, matrixStack, transformType == ItemDisplayContext.FIRST_PERSON_LEFT_HAND || transformType == ItemDisplayContext.THIRD_PERSON_LEFT_HAND);
+            model.getTransforms().getTransform(transformType).apply(transformType == ItemDisplayContext.FIRST_PERSON_LEFT_HAND || transformType == ItemDisplayContext.THIRD_PERSON_LEFT_HAND, matrixStack);
             matrixStack.translate(-0.5D, -0.5D, -0.5D);
             RenderType renderType = RenderType.entityCutout(this.contents().name());
             renderModelLists(model, packedLight, combinedOverlay, matrixStack, ItemRenderer.getFoilBufferDirect(buffer, renderType, false, stack.hasFoil()), renderType);
         }
 
-        @SuppressWarnings({"ConstantValue", "DataFlowIssue"})
+        @SuppressWarnings("ConstantValue")
         private BakedModel getModel() {
             ResourceLocation name = this.contents().name();
             if (this.model == null) {
@@ -276,7 +291,7 @@ public class AlbumCoverItemRenderer extends BlockEntityWithoutLevelRenderer impl
         }
 
         public NativeImage getImage() {
-            return this.contents().getOriginalImage();
+            return ((SpriteContentsAccessor)this.contents()).getOriginalImage();
         }
 
         @Override
@@ -285,7 +300,7 @@ public class AlbumCoverItemRenderer extends BlockEntityWithoutLevelRenderer impl
         }
 
         @Override
-        public VertexConsumer wrap(VertexConsumer buffer) {
+        public @NotNull VertexConsumer wrap(VertexConsumer buffer) {
             return buffer;
         }
 

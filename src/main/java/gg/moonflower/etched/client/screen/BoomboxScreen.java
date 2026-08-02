@@ -1,7 +1,7 @@
 package gg.moonflower.etched.client.screen;
 
-import gg.moonflower.etched.common.menu.BoomboxMenu;
-import gg.moonflower.etched.core.Etched;
+import gg.moonflower.etched.registry.menu.BoomboxMenu;
+import gg.moonflower.etched.Etched;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -13,7 +13,7 @@ import net.minecraft.world.entity.player.Inventory;
  */
 public class BoomboxScreen extends AbstractContainerScreen<BoomboxMenu> {
 
-    private static final ResourceLocation BOOMBOX_LOCATION = Etched.etchedPath("textures/gui/container/boombox.png");
+    private static final ResourceLocation BOOMBOX_LOCATION = Etched.id("textures/gui/container/boombox.png");
 
     public BoomboxScreen(BoomboxMenu hopperMenu, Inventory inventory, Component component) {
         super(hopperMenu, inventory, component);

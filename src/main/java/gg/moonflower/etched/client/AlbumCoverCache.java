@@ -8,11 +8,11 @@ import com.mojang.blaze3d.platform.TextureUtil;
 import gg.moonflower.etched.api.record.AlbumCover;
 import gg.moonflower.etched.client.render.item.AlbumCoverItemRenderer;
 import gg.moonflower.etched.client.render.item.AlbumImageProcessor;
-import gg.moonflower.etched.core.Etched;
+import gg.moonflower.etched.Etched;
+import gg.moonflower.etched.mixin.client.render.NativeImageAccessor;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.common.NeoForge;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -24,7 +24,7 @@ import org.lwjgl.system.MemoryUtil;
 
 import java.io.*;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.nio.charset.StandardCharsets;
@@ -55,7 +55,7 @@ public final class AlbumCoverCache {
     private static volatile JsonObject CACHE_METADATA = new JsonObject();
     private static volatile long nextWriteTime = Long.MAX_VALUE;
 
-    static {
+    public static void register() {
         if (Files.exists(CACHE_METADATA_LOCATION)) {
             LOGGER.debug("Reading cache metadata from file.");
             try (InputStreamReader reader = new InputStreamReader(new FileInputStream(CACHE_METADATA_LOCATION.toFile()))) {
@@ -64,13 +64,11 @@ public final class AlbumCoverCache {
                 LOGGER.error("Failed to load cache metadata", e);
             }
         }
-        NeoForge.EVENT_BUS.addListener(AlbumCoverCache::onClientTickPost);
+        ClientTickEvents.END_CLIENT_TICK.register(AlbumCoverCache::onEndTick);
     }
 
-    private AlbumCoverCache() {
-    }
-
-    private static void onClientTickPost(ClientTickEvent.Post event) {
+    @SuppressWarnings("resource")
+    public static void onEndTick(Minecraft minecraft) {
         if (nextWriteTime == Long.MAX_VALUE) {
             return;
         }
@@ -80,7 +78,6 @@ public final class AlbumCoverCache {
             Util.ioPool().execute(AlbumCoverCache::writeMetadata);
         }
     }
-
     // Minecraft makes it so ONLY pngs can be loaded, so we have to manually load to support JPG and other formats
     public static NativeImage read(InputStream stream) throws IOException {
         ByteBuffer textureData = null;
@@ -100,12 +97,12 @@ public final class AlbumCoverCache {
                     throw new IOException("Could not load image: " + stbi_failure_reason());
                 }
 
-                return new NativeImage(
-                        NativeImage.Format.RGBA,
-                        w.get(0),
-                        h.get(0),
-                        true,
-                        MemoryUtil.memAddress(data)
+                return NativeImageAccessor.construct(
+                    NativeImage.Format.RGBA,
+                    w.get(0),
+                    h.get(0),
+                    true,
+                    MemoryUtil.memAddress(data)
                 );
             }
         } finally {
@@ -121,10 +118,14 @@ public final class AlbumCoverCache {
                 throw new CompletionException(e);
             }
         }, Util.nonCriticalIoPool()).thenApplyAsync(path -> {
-            try (FileInputStream is = new FileInputStream(path.toFile()); NativeImage image = read(is)) {
-                return AlbumCover.of(AlbumImageProcessor.apply(image, AlbumCoverItemRenderer.getOverlayImage()));
-            } catch (Exception e) {
-                throw new CompletionException(e);
+            if (path != null) {
+                try (FileInputStream is = new FileInputStream(path.toFile()); NativeImage image = read(is)) {
+                    return AlbumCover.of(AlbumImageProcessor.apply(image, AlbumCoverItemRenderer.getOverlayImage()));
+                } catch (Exception e) {
+                    throw new CompletionException(e);
+                }
+            } else {
+                return AlbumCover.EMPTY;
             }
         }, Util.ioPool()).handle((result, throwable) -> {
             if (throwable != null) {
@@ -206,7 +207,7 @@ public final class AlbumCoverCache {
     }
 
     public static InputStream get(String url) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+        HttpURLConnection connection = (HttpURLConnection) URI.create(url).toURL().openConnection();
         connection.addRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11");
         InputStream stream = connection.getInputStream();
 

@@ -7,12 +7,12 @@ import com.google.gson.reflect.TypeToken;
 import gg.moonflower.etched.api.sound.download.SoundSourceManager;
 import gg.moonflower.etched.api.sound.source.AudioSource;
 import gg.moonflower.etched.api.util.DownloadProgressListener;
-import gg.moonflower.etched.core.Etched;
+import gg.moonflower.etched.Etched;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientLoginConnectionEvents;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
-import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraft.client.multiplayer.ClientHandshakePacketListenerImpl;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -90,8 +90,24 @@ public final class SoundCache {
                 LOGGER.error("Failed to load cache metadata", e);
             }
         }
-        NeoForge.EVENT_BUS.addListener(SoundCache::onClientDisconnect);
-        NeoForge.EVENT_BUS.addListener(SoundCache::onClientTickPost);
+        ClientLoginConnectionEvents.DISCONNECT.register(SoundCache::onClientDisconnect);
+        ClientTickEvents.END_CLIENT_TICK.register(SoundCache::onClientTickPost);
+    }
+
+    private static void onClientDisconnect(ClientHandshakePacketListenerImpl clientHandshakePacketListener, Minecraft minecraft) {
+        SOURCE_CACHE.invalidateAll();
+    }
+
+    @SuppressWarnings("resource")
+    private static void onClientTickPost(Minecraft minecraft) {
+        if (nextWriteTime == Long.MAX_VALUE) {
+            return;
+        }
+
+        if (System.currentTimeMillis() - nextWriteTime > 0) {
+            nextWriteTime = Long.MAX_VALUE;
+            Util.ioPool().execute(SoundCache::writeMetadata);
+        }
     }
 
     private SoundCache() {
@@ -113,21 +129,6 @@ public final class SoundCache {
             IOUtils.write(GSON.toJson(CACHE_METADATA), os, StandardCharsets.UTF_8);
         } catch (Exception e) {
             LOGGER.error("Failed to write cache metadata", e);
-        }
-    }
-
-    private static void onClientDisconnect(ClientPlayerNetworkEvent.LoggingOut event) {
-        SOURCE_CACHE.invalidateAll();
-    }
-
-    private static void onClientTickPost(ClientTickEvent.Post event) {
-        if (nextWriteTime == Long.MAX_VALUE) {
-            return;
-        }
-
-        if (System.currentTimeMillis() - nextWriteTime > 0) {
-            nextWriteTime = Long.MAX_VALUE;
-            Util.ioPool().execute(SoundCache::writeMetadata);
         }
     }
 

@@ -4,10 +4,11 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import gg.moonflower.etched.api.record.PlayableRecord;
 import gg.moonflower.etched.api.record.TrackData;
 import gg.moonflower.etched.api.sound.SoundTracker;
-import gg.moonflower.etched.common.blockentity.AlbumJukeboxBlockEntity;
-import gg.moonflower.etched.common.menu.AlbumJukeboxMenu;
-import gg.moonflower.etched.common.network.play.SetAlbumJukeboxTrackPacket;
-import gg.moonflower.etched.core.Etched;
+import gg.moonflower.etched.registry.block.entity.AlbumJukeboxBlockEntity;
+import gg.moonflower.etched.registry.menu.AlbumJukeboxMenu;
+import gg.moonflower.etched.registry.network.play.SetAlbumJukeboxTrackPacket;
+import gg.moonflower.etched.Etched;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -15,12 +16,13 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.neoforged.neoforge.network.PacketDistributor;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -29,7 +31,7 @@ import java.util.List;
  */
 public class AlbumJukeboxScreen extends AbstractContainerScreen<AlbumJukeboxMenu> {
 
-    private static final ResourceLocation CONTAINER_LOCATION = Etched.etchedPath("textures/gui/container/album_jukebox.png");
+    private static final ResourceLocation CONTAINER_LOCATION = Etched.id("textures/gui/container/album_jukebox.png");
     private static final Component NOW_PLAYING = Component.translatable("screen." + Etched.MOD_ID + ".album_jukebox.now_playing").withStyle(ChatFormatting.YELLOW);
 
     private static final Component PREVIOUS = Component.translatable("screen." + Etched.MOD_ID + ".album_jukebox.previous");
@@ -43,7 +45,10 @@ public class AlbumJukeboxScreen extends AbstractContainerScreen<AlbumJukeboxMenu
     }
 
     private void update(boolean next) {
-        ClientLevel level = this.minecraft.level;
+        ClientLevel level = null;
+        if (this.minecraft != null) {
+            level = this.minecraft.level;
+        }
         if (level == null) {
             return;
         }
@@ -63,7 +68,7 @@ public class AlbumJukeboxScreen extends AbstractContainerScreen<AlbumJukeboxMenu
 
         if (((jukebox.getPlayingIndex() == oldIndex && jukebox.getTrack() != oldTrack) || jukebox.recalculatePlayingIndex(!next)) && jukebox.getPlayingIndex() != -1) {
             SoundTracker.playAlbum(jukebox, jukebox.getBlockState(), level, this.menu.getPos(), true);
-            PacketDistributor.sendToServer(new SetAlbumJukeboxTrackPacket(jukebox.getPlayingIndex(), jukebox.getTrack()));
+            ClientPlayNetworking.send(new SetAlbumJukeboxTrackPacket(jukebox.getPlayingIndex(), jukebox.getTrack()));
         }
     }
 
@@ -97,12 +102,10 @@ public class AlbumJukeboxScreen extends AbstractContainerScreen<AlbumJukeboxMenu
 
         this.playingIndex = -1;
         this.playingTrack = 0;
-        ClientLevel level = this.minecraft.level;
-        if (level == null) {
+        if (this.minecraft == null || this.minecraft.level == null) {
             return;
         }
-
-        BlockEntity blockEntity = level.getBlockEntity(this.menu.getPos());
+        BlockEntity blockEntity = this.minecraft.level.getBlockEntity(this.menu.getPos());
         if (!(blockEntity instanceof AlbumJukeboxBlockEntity jukebox)) {
             return;
         }
@@ -117,12 +120,13 @@ public class AlbumJukeboxScreen extends AbstractContainerScreen<AlbumJukeboxMenu
     }
 
     @Override
-    protected List<Component> getTooltipFromContainerItem(ItemStack stack) {
+    protected @NotNull List<Component> getTooltipFromContainerItem(ItemStack stack) {
         List<Component> tooltip = super.getTooltipFromContainerItem(stack);
 
-        if (this.hoveredSlot != null && this.hoveredSlot.index == this.playingIndex) {
-            if (this.playingTrack >= 0) {
-                List<TrackData> tracks = PlayableRecord.getTracks(this.minecraft.getConnection().registryAccess(), stack);
+        if (this.hoveredSlot != null && this.hoveredSlot.index == this.playingIndex && this.playingTrack >= 0 && this.minecraft != null) {
+            ClientPacketListener connection = this.minecraft.getConnection();
+            if (connection != null) {
+                List<TrackData> tracks = PlayableRecord.getTracks(connection.registryAccess(), stack);
                 if (this.playingTrack < tracks.size()) {
                     // TODO use lang key
                     TrackData track = tracks.get(this.playingTrack);

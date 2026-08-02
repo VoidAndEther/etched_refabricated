@@ -35,7 +35,7 @@
   "screen.etched.etching_table.error.cannot_create.missing_disc": "Lege Muziekplaat mist",
   "screen.etched.etching_table.error.cannot_create.missing_label": "Muzieklabel mist",
   "screen.etched.etching_table.error.invalid_url": "Ongeldige URL",
-  "sound_source.etched.bandcamp": "Geleverd door Bandcamp",
+  "sound_source.etched.bandcamp": "Geleverd door Bandcamp",bm
   "sound_source.etched.info": "%s - %s",
   "sound_source.etched.radio": "Radio Station",
   "sound_source.etched.requesting": "Opvragen bij %s...",

@@ -5,33 +5,35 @@ import gg.moonflower.etched.api.sound.download.SoundSourceManager;
 import gg.moonflower.etched.api.sound.source.AudioSource;
 import gg.moonflower.etched.client.render.item.AlbumCoverItemRenderer;
 import gg.moonflower.etched.client.sound.EntityRecordSoundInstance;
-import gg.moonflower.etched.common.component.AlbumCoverComponent;
-import gg.moonflower.etched.common.component.MusicTrackComponent;
-import gg.moonflower.etched.common.network.play.ClientboundPlayEntityMusicPacket;
-import gg.moonflower.etched.core.Etched;
-import gg.moonflower.etched.core.extension.JukeboxSongExt;
-import gg.moonflower.etched.core.registry.EtchedComponents;
+import gg.moonflower.etched.registry.component.AlbumCoverComponent;
+import gg.moonflower.etched.registry.component.MusicTrackComponent;
+import gg.moonflower.etched.registry.network.play.ClientboundPlayEntityMusicPacket;
+import gg.moonflower.etched.Etched;
+import gg.moonflower.etched.extension.JukeboxSongExt;
+import gg.moonflower.etched.registry.component.EtchedComponents;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.JukeboxSong;
 import net.minecraft.world.level.CommonLevelAccessor;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraft.world.phys.Vec3;
 
 import java.net.Proxy;
 import java.util.ArrayList;
@@ -72,10 +74,21 @@ public final class PlayableRecord {
      * @param z The z position of the entity
      * @return Whether the player is within distance
      */
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public static boolean canShowMessage(double x, double y, double z) {
         LocalPlayer player = Minecraft.getInstance().player;
         return player == null || player.distanceToSqr(x, y, z) <= 4096.0;
+    }
+
+    /**
+     * Checks to see if the local player is close enough to receive the record text.
+     *
+     * @param pos The position of the entity
+     * @return Whether the player is within distance
+     */
+    @Environment(EnvType.CLIENT)
+    public static boolean canShowMessage(Vec3 pos) {
+        return canShowMessage(pos.x, pos.y, pos.z);
     }
 
     /**
@@ -86,7 +99,10 @@ public final class PlayableRecord {
      * @param restart Whether to restart the track from the beginning or start a new playback
      */
     public static void playEntityRecord(Entity entity, ItemStack record, boolean restart) {
-        PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity, new ClientboundPlayEntityMusicPacket(record.copy(), entity, restart, null));
+        ClientboundPlayEntityMusicPacket packet = new ClientboundPlayEntityMusicPacket(record.copy(), entity, restart);
+        for (ServerPlayer player: PlayerLookup.tracking(entity)) {
+            ServerPlayNetworking.send(player, packet);
+        }
     }
 
     /**
@@ -95,7 +111,10 @@ public final class PlayableRecord {
      * @param entity The entity to stop playing records
      */
     public static void stopEntityRecord(Entity entity) {
-        PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity, new ClientboundPlayEntityMusicPacket(entity));
+        ClientboundPlayEntityMusicPacket packet = new ClientboundPlayEntityMusicPacket(entity);
+        for (ServerPlayer player: PlayerLookup.tracking(entity)) {
+            ServerPlayNetworking.send(player, packet);
+        }
     }
 
     /**
@@ -192,7 +211,7 @@ public final class PlayableRecord {
      * @param track  The track to play on the disc
      * @return The sound to play or nothing to error
      */
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public static Optional<SoundInstance> createEntitySound(ItemStack stack, Entity entity, int track) {
         return createEntitySound(stack, entity, track, 16);
     }
@@ -206,7 +225,7 @@ public final class PlayableRecord {
      * @param attenuationDistance The attenuation distance of the sound
      * @return The sound to play or nothing to error
      */
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public static Optional<SoundInstance> createEntitySound(ItemStack stack, Entity entity, int track, int attenuationDistance) {
         if (track < 0) {
             return Optional.empty();
@@ -257,7 +276,7 @@ public final class PlayableRecord {
      * @param track The track to play on the disc
      * @return The sound to play or nothing to error
      */
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public static Optional<SoundInstance> createBlockSound(ItemStack stack, CommonLevelAccessor level, BlockPos pos, int track) {
         return createBlockSound(stack, level, pos, track, 16);
     }
@@ -272,7 +291,7 @@ public final class PlayableRecord {
      * @param attenuationDistance The attenuation distance of the sound
      * @return The sound to play or nothing to error
      */
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public static Optional<SoundInstance> createBlockSound(ItemStack stack, CommonLevelAccessor level, BlockPos pos, int track, int attenuationDistance) {
         if (track < 0) {
             return Optional.empty();
@@ -318,7 +337,7 @@ public final class PlayableRecord {
      * @param stack The stack to get art for
      * @return A future for a potential cover
      */
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public static CompletableFuture<AlbumCover> getAlbumCover(ItemStack stack, Proxy proxy, ResourceManager resourceManager) {
         Optional<TrackData> album = getAlbum(stack);
         if (album.isPresent()) {
@@ -326,8 +345,8 @@ public final class PlayableRecord {
         }
 
         ResourceLocation key = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        if (resourceManager.getResource(key.withPath("models/" + AlbumCoverItemRenderer.FOLDER_NAME + "/" + key.getPath() + ".json")).isPresent()) {
-            return CompletableFuture.completedFuture(AlbumCover.of(key.withPath(AlbumCoverItemRenderer.FOLDER_NAME + "/" + key.getPath())));
+        if (resourceManager.getResource(key.withPath("models/" + AlbumCoverItemRenderer.DIRECTORY + "/" + key.getPath() + ".json")).isPresent()) {
+            return CompletableFuture.completedFuture(AlbumCover.of(key.withPath(AlbumCoverItemRenderer.DIRECTORY + "/" + key.getPath())));
         }
 
         return CompletableFuture.completedFuture(AlbumCover.EMPTY);
@@ -340,7 +359,7 @@ public final class PlayableRecord {
      * @param context The context for adding tooltip lines
      * @param adder   The consumer for tooltips
      */
-    @OnlyIn(Dist.CLIENT)
+    @Environment(EnvType.CLIENT)
     public static void addToTooltip(ItemStack stack, Item.TooltipContext context, Consumer<Component> adder) {
         getAlbum(stack).ifPresent(track -> {
             boolean album = getTrackCount(context.registries(), stack) > 1;

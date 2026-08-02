@@ -1,5 +1,4 @@
 package gg.moonflower.etched.api.util;
-
 import javazoom.jl.decoder.*;
 import org.jetbrains.annotations.NotNull;
 

@@ -75,7 +75,7 @@
   },
   "overrides": [
     {
-      "model": "etched:item/boombox_playing",
+      "model": "etched:item/boombox_in_hand_playing",
       "predicate": {
         "etched:playing": 1.0
       }

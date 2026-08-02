@@ -1,25 +1,15 @@
 {
   "required": true,
-  "package": "gg.moonflower.etched.core.mixin",
+  "package": "gg.moonflower.etched.mixin",
   "compatibilityLevel": "JAVA_21",
-  "minVersion": "0.8",
-  "client": [
-    "client.entity.ClientLivingEntityMixin",
-    "client.entity.ParrotMixin",
-    "client.gui.ForgeIngameGuiMixin",
-    "client.gui.GuiAccessor",
-    "client.gui.GuiMixin",
-    "client.render.HumanoidModelMixin",
-    "client.render.LevelRendererAccessor",
-    "client.render.LevelRendererMixin",
-    "client.render.ParrotModelMixin",
-    "client.sound.ChannelMixin",
-    "client.sound.SoundEngineMixin"
-  ],
   "mixins": [
+    "GrindstoneMenuMixin",
+    "GrindstoneSlotMixin",
+    "ItemEntityMixin",
     "NoteBlockMixin",
     "StructureTemplatePoolAccessor",
     "VillagerGoalPackagesMixin",
+    "client.entity.ParrotMixin",
     "component.JukeboxSongMixin",
     "jukebox.JukeboxBlockEntityMixin",
     "jukebox.JukeboxPlayableMixin",
@@ -27,5 +17,22 @@
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  },
+  "client": [
+    "client.entity.AbstractClientPlayerMixin",
+    "client.gui.GuiAccessor",
+    "client.gui.GuiMixin",
+    "client.render.HumanoidModelMixin",
+    "client.render.ItemRendererMixin",
+    "client.render.LevelRendererAccessor",
+    "client.render.LevelRendererMixin",
+    "client.render.NativeImageAccessor",
+    "client.render.ParrotModelMixin",
+    "client.render.SpriteContentsAccessor",
+    "client.sound.ChannelMixin",
+    "client.sound.SoundEngineMixin"
+  ]
 }

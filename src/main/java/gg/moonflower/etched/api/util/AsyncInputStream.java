@@ -1,5 +1,7 @@
 package gg.moonflower.etched.api.util;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
@@ -111,7 +113,7 @@ public class AsyncInputStream extends InputStream {
                 this.currentData = null;
                 return true;
             }
-            this.currentData = this.readBytes.remove(0);
+            this.currentData = this.readBytes.removeFirst();
             return false;
         } finally {
             this.lock.unlock();
@@ -142,7 +144,7 @@ public class AsyncInputStream extends InputStream {
     }
 
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
+    public int read(byte @NotNull [] b, int off, int len) throws IOException {
         this.rethrowException();
         if ((this.currentData == null || this.pointer >= this.currentData.length) && this.nextBuffer()) {
             return -1;

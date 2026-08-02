@@ -4,15 +4,17 @@ import gg.moonflower.etched.api.record.PlayableRecord;
 import gg.moonflower.etched.api.record.TrackData;
 import gg.moonflower.etched.api.sound.source.AudioSource;
 import gg.moonflower.etched.api.util.DownloadProgressListener;
-import gg.moonflower.etched.common.block.AlbumJukeboxBlock;
-import gg.moonflower.etched.common.block.RadioBlock;
-import gg.moonflower.etched.common.blockentity.AlbumJukeboxBlockEntity;
-import gg.moonflower.etched.core.Etched;
-import gg.moonflower.etched.core.mixin.client.gui.GuiAccessor;
-import gg.moonflower.etched.core.mixin.client.render.LevelRendererAccessor;
-import gg.moonflower.etched.core.registry.EtchedTags;
+import gg.moonflower.etched.registry.block.AlbumJukeboxBlock;
+import gg.moonflower.etched.registry.block.RadioBlock;
+import gg.moonflower.etched.registry.block.entity.AlbumJukeboxBlockEntity;
+import gg.moonflower.etched.Etched;
+import gg.moonflower.etched.mixin.client.gui.GuiAccessor;
+import gg.moonflower.etched.mixin.client.render.LevelRendererAccessor;
+import gg.moonflower.etched.util.EtchedBlockTags;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
+import net.fabricmc.fabric.api.client.networking.v1.ClientLoginConnectionEvents;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientHandshakePacketListenerImpl;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.client.sounds.SoundManager;
@@ -32,9 +34,7 @@ import net.minecraft.world.level.CommonLevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
-import net.neoforged.neoforge.common.NeoForge;
-import net.p3pp3rf1y.sophisticatedcore.upgrades.jukebox.StorageSoundHandler;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,11 +55,15 @@ public class SoundTracker {
     private static final Logger log = LoggerFactory.getLogger(SoundTracker.class);
 
     static {
-        NeoForge.EVENT_BUS.<ClientPlayerNetworkEvent.LoggingOut>addListener(event -> FAILED_URLS.clear());
+        ClientLoginConnectionEvents.DISCONNECT.register(SoundTracker::onLoginDisconnect);
+    }
+
+    private static void onLoginDisconnect(ClientHandshakePacketListenerImpl clientHandshakePacketListener, Minecraft minecraft) {
+        FAILED_URLS.clear();
     }
 
     private static synchronized void setRecordPlayingNearby(CommonLevelAccessor level, BlockPos pos, boolean playing) {
-        if (level.getBlockState(pos).is(EtchedTags.RECORD_PLAYERS)) {
+        if (level.getBlockState(pos).is(EtchedBlockTags.RECORD_PLAYERS)) {
             for (LivingEntity livingEntity : level.getEntitiesOfClass(LivingEntity.class, new AABB(pos).inflate(3.0D))) {
                 livingEntity.setRecordPlayingNearby(pos, playing);
             }
@@ -140,19 +144,6 @@ public class SoundTracker {
     }
 
     /**
-     * Creates an online sound for the specified entity with the default attenuation distance.
-     *
-     * @param url    The url to play
-     * @param title  The title of the record
-     * @param entity The entity to play for
-     * @param stream Whether to play a stream or regular file
-     * @return A new sound instance
-     */
-    public static @Nullable AbstractOnlineSoundInstance getEtchedRecord(String url, Component title, Entity entity, boolean stream) {
-        return getEtchedRecord(url, title, entity, 16, stream);
-    }
-
-    /**
      * Creates an online sound for the specified position.
      *
      * @param url                 The url to play
@@ -227,10 +218,6 @@ public class SoundTracker {
     }
 
     public static void playBlockRecord(BlockPos pos, TrackData[] tracks, int track) {
-        playBlockRecord(pos, tracks, track, null);
-    }
-
-    public static void playBlockRecord(BlockPos pos, TrackData[] tracks, int track, @Nullable UUID storageId) {
         ClientLevel level = Minecraft.getInstance().level;
         if (level == null) {
             return;
@@ -244,7 +231,7 @@ public class SoundTracker {
         TrackData trackData = tracks[track];
         String url = trackData.url();
         if (!TrackData.isValidURL(url) || FAILED_URLS.contains(url)) {
-            playBlockRecord(pos, tracks, track + 1, storageId);
+            playBlockRecord(pos, tracks, track + 1);
             return;
         }
 
@@ -252,13 +239,9 @@ public class SoundTracker {
             if (!((LevelRendererAccessor) Minecraft.getInstance().levelRenderer).getPlayingJukeboxSongs().containsKey(pos)) {
                 return;
             }
-            playBlockRecord(pos, tracks, track + 1, storageId);
+            playBlockRecord(pos, tracks, track + 1);
         }));
-        if (Etched.SOPHSTICATED_CORE_LOADED && storageId != null) {
-            StorageSoundHandler.playStorageSound(storageId, sound);
-        } else {
-            playRecord(pos, sound);
-        }
+        playRecord(pos, sound);
     }
 
     /**
@@ -271,19 +254,6 @@ public class SoundTracker {
      * @param loop                Whether to loop
      */
     public static void playEntityRecord(ItemStack record, int entityId, int track, int attenuationDistance, boolean loop) {
-        playEntityRecord(record, entityId, track, attenuationDistance, loop, null);
-    }
-
-    /**
-     * Plays a record stack for an entity.
-     *
-     * @param record              The record to play
-     * @param entityId            The id of the entity to play the record at
-     * @param track               The track to play
-     * @param attenuationDistance The attenuation distance of the sound
-     * @param loop                Whether to loop
-     */
-    public static void playEntityRecord(ItemStack record, int entityId, int track, int attenuationDistance, boolean loop, @Nullable UUID storageId) {
         ClientLevel level = Minecraft.getInstance().level;
         if (level == null) {
             return;
@@ -297,7 +267,7 @@ public class SoundTracker {
         Optional<? extends SoundInstance> sound = PlayableRecord.createEntitySound(record, entity, track, attenuationDistance);
         if (sound.isEmpty()) {
             if (loop && track != 0) {
-                playEntityRecord(record, entityId, 0, attenuationDistance, true, storageId);
+                playEntityRecord(record, entityId, 0, attenuationDistance, true);
             }
             return;
         }
@@ -312,19 +282,11 @@ public class SoundTracker {
 
         entitySound = StopListeningSound.create(sound.get(), () -> Minecraft.getInstance().tell(() -> {
             ENTITY_PLAYING_SOUNDS.remove(entityId);
-            playEntityRecord(record, entityId, track + 1, attenuationDistance, loop, storageId);
+            playEntityRecord(record, entityId, track + 1, attenuationDistance, loop);
         }));
 
-        if (Etched.SOPHSTICATED_CORE_LOADED && storageId != null) {
-            StorageSoundHandler.playStorageSound(storageId, entitySound);
-        } else {
-            ENTITY_PLAYING_SOUNDS.put(entityId, entitySound);
-            Minecraft.getInstance().getSoundManager().play(entitySound);
-        }
-    }
-
-    public static void playEntityRecord(ItemStack record, int entityId, int track, boolean loop) {
-        SoundTracker.playEntityRecord(record, entityId, track, 16, loop);
+        ENTITY_PLAYING_SOUNDS.put(entityId, entitySound);
+        Minecraft.getInstance().getSoundManager().play(entitySound);
     }
 
     /**
@@ -371,7 +333,9 @@ public class SoundTracker {
 
         if (TrackData.isValidURL(url)) {
             AbstractOnlineSoundInstance record = getEtchedRecord(url, RADIO, level, pos, 8, AudioSource.AudioFileType.BOTH);
-            record.setLoop(true); // If the sound is a file, then just continue looping that specific track
+            if (record != null) {
+                record.setLoop(true); // If the sound is a file, then just continue looping that specific track
+            }
             playRecord(pos, record); // Get the new block state
         }
     }
@@ -434,22 +398,22 @@ public class SoundTracker {
         }
 
         @Override
-        public ComponentContents getContents() {
+        public @NotNull ComponentContents getContents() {
             return this.contents;
         }
 
         @Override
-        public List<Component> getSiblings() {
+        public @NotNull List<Component> getSiblings() {
             return Collections.emptyList();
         }
 
         @Override
-        public Style getStyle() {
+        public @NotNull Style getStyle() {
             return Style.EMPTY;
         }
 
         @Override
-        public FormattedCharSequence getVisualOrderText() {
+        public @NotNull FormattedCharSequence getVisualOrderText() {
             Language language = Language.getInstance();
             if (this.decomposedWith != language) {
                 this.visualOrderText = language.getVisualOrder(this);

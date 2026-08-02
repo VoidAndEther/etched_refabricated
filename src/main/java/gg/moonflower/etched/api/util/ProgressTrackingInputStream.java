@@ -40,7 +40,7 @@ public class ProgressTrackingInputStream extends InputStream {
     }
 
     @Override
-    public int read(@NotNull byte[] b, int off, int len) throws IOException {
+    public int read(byte @NotNull [] b, int off, int len) throws IOException {
         int read = this.parent.read(b, off, len);
         if (read != -1) {
             this.read += read;

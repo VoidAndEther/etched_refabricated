@@ -28,6 +28,7 @@ public class StreamingInputStream extends InputStream {
         this.queueBuffers();
     }
 
+    @SuppressWarnings("CallToPrintStackTrace")
     private void queueBuffers() {
         while (this.queue.size() < BUFFER_SIZE && this.index < this.source.size()) {
             try {
@@ -39,6 +40,7 @@ public class StreamingInputStream extends InputStream {
         }
     }
 
+    @SuppressWarnings("CallToPrintStackTrace")
     private void incrementPosition() {
         try {
             this.queue.removeFirst().close();
@@ -64,6 +66,7 @@ public class StreamingInputStream extends InputStream {
         return result;
     }
 
+    @SuppressWarnings("resource")
     @Override
     public int read(byte @NotNull [] b, int off, int len) throws IOException {
         if (this.queue.isEmpty() && (this.index == -1 || this.index >= this.source.size())) {
@@ -107,6 +110,7 @@ public class StreamingInputStream extends InputStream {
         return result;
     }
 
+    @SuppressWarnings("CallToPrintStackTrace")
     @Override
     public void close() {
         for (InputStream stream : this.queue) {

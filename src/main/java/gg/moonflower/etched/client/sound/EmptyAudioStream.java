@@ -1,6 +1,7 @@
 package gg.moonflower.etched.client.sound;
 
 import net.minecraft.client.sounds.AudioStream;
+import org.jetbrains.annotations.NotNull;
 
 import javax.sound.sampled.AudioFormat;
 import java.nio.ByteBuffer;
@@ -17,12 +18,12 @@ public enum EmptyAudioStream implements AudioStream {
     private static final AudioFormat FORMAT = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, 22050, 8, 1, 4, 1, true);
 
     @Override
-    public AudioFormat getFormat() {
+    public @NotNull AudioFormat getFormat() {
         return FORMAT;
     }
 
     @Override
-    public ByteBuffer read(int i) {
+    public @NotNull ByteBuffer read(int i) {
         return ByteBuffer.allocateDirect(0);
     }
 

@@ -9,6 +9,7 @@ import net.minecraft.client.sounds.SoundManager;
 import net.minecraft.client.sounds.WeighedSoundEvents;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundSource;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
@@ -44,7 +45,7 @@ public class StopListeningSound implements SoundInstance, SoundStopListener, Wra
     }
 
     @Override
-    public ResourceLocation getLocation() {
+    public @NotNull ResourceLocation getLocation() {
         return this.source.getLocation();
     }
 
@@ -55,12 +56,12 @@ public class StopListeningSound implements SoundInstance, SoundStopListener, Wra
     }
 
     @Override
-    public Sound getSound() {
+    public @NotNull Sound getSound() {
         return this.source.getSound();
     }
 
     @Override
-    public SoundSource getSource() {
+    public @NotNull SoundSource getSource() {
         return this.source.getSource();
     }
 
@@ -105,7 +106,7 @@ public class StopListeningSound implements SoundInstance, SoundStopListener, Wra
     }
 
     @Override
-    public Attenuation getAttenuation() {
+    public @NotNull Attenuation getAttenuation() {
         return this.source.getAttenuation();
     }
 
@@ -120,8 +121,8 @@ public class StopListeningSound implements SoundInstance, SoundStopListener, Wra
     }
 
     @Override
-    public CompletableFuture<AudioStream> getStream(SoundBufferLibrary soundBuffers, Sound sound, boolean looping) {
-        return this.source.getStream(soundBuffers, sound, looping);
+    public CompletableFuture<AudioStream> getAudioStream(SoundBufferLibrary loader, ResourceLocation sound, boolean looping) {
+        return this.source.getAudioStream(loader, sound, looping);
     }
 
     @Override

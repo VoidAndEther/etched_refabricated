@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/orientable",
+  "textures": {
+    "front": "etched:block/album_jukebox_front_full",
+    "side": "etched:block/album_jukebox_side",
+    "top": "etched:block/album_jukebox_top"
+  }
+}

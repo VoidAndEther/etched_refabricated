@@ -1,10 +1,11 @@
 package gg.moonflower.etched.client.screen;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import gg.moonflower.etched.common.component.MusicLabelComponent;
-import gg.moonflower.etched.common.network.play.ServerboundEditMusicLabelPacket;
-import gg.moonflower.etched.core.Etched;
-import gg.moonflower.etched.core.registry.EtchedComponents;
+import gg.moonflower.etched.registry.component.MusicLabelComponent;
+import gg.moonflower.etched.registry.network.play.ServerboundEditMusicLabelPacket;
+import gg.moonflower.etched.Etched;
+import gg.moonflower.etched.registry.component.EtchedComponents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -17,12 +18,11 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 public class EditMusicLabelScreen extends Screen {
 
-    private static final ResourceLocation TEXTURE = Etched.etchedPath("textures/gui/edit_music_label.png");
-    private static final ResourceLocation LABEL = Etched.etchedPath("textures/gui/label.png");
+    private static final ResourceLocation TEXTURE = Etched.id("textures/gui/edit_music_label.png");
+    private static final ResourceLocation LABEL = Etched.id("textures/gui/label.png");
     private static final Component TITLE_COMPONENT = Component.translatable("screen.etched.edit_music_label.title");
     private static final Component AUTHOR_COMPONENT = Component.translatable("screen.etched.edit_music_label.author");
 
@@ -55,7 +55,9 @@ public class EditMusicLabelScreen extends Screen {
 
         this.doneButton = Button.builder(CommonComponents.GUI_DONE, button -> {
             this.saveChanges();
-            this.minecraft.setScreen(null);
+            if (this.minecraft != null) {
+                this.minecraft.setScreen(null);
+            }
         }).bounds(leftPos, topPos + this.imageHeight + 5, this.imageWidth, 20).build();
         this.addRenderableWidget(this.doneButton);
 
@@ -131,6 +133,6 @@ public class EditMusicLabelScreen extends Screen {
         int slot = this.hand == InteractionHand.MAIN_HAND ? this.player.getInventory().selected : 40;
         String author = this.author.getValue().trim();
         String title = this.title.getValue().trim();
-        PacketDistributor.sendToServer(new ServerboundEditMusicLabelPacket(slot, author, title));
+        ClientPlayNetworking.send(new ServerboundEditMusicLabelPacket(slot, author, title));
     }
 }

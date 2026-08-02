@@ -1,7 +1,7 @@
 package gg.moonflower.etched.client.screen;
 
-import gg.moonflower.etched.common.menu.AlbumCoverMenu;
-import gg.moonflower.etched.core.Etched;
+import gg.moonflower.etched.registry.menu.AlbumCoverMenu;
+import gg.moonflower.etched.Etched;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -13,7 +13,7 @@ import net.minecraft.world.entity.player.Inventory;
  */
 public class AlbumCoverScreen extends AbstractContainerScreen<AlbumCoverMenu> {
 
-    private static final ResourceLocation CONTAINER_LOCATION = Etched.etchedPath("textures/gui/container/album_cover.png");
+    private static final ResourceLocation CONTAINER_LOCATION = Etched.id("textures/gui/container/album_cover.png");
 
     public AlbumCoverScreen(AlbumCoverMenu hopperMenu, Inventory inventory, Component component) {
         super(hopperMenu, inventory, component);

@@ -41,7 +41,7 @@ public sealed interface AlbumCover {
      * @return The cover instance
      */
     static AlbumCover of(ResourceLocation location) {
-        return new ModelAlbumCover(new ModelResourceLocation(location, "standalone"));
+        return new ModelAlbumCover(new ModelResourceLocation(location, "inventory"));
     }
 
     enum Empty implements AlbumCover{

@@ -12,6 +12,7 @@ import net.minecraft.client.User;
 import net.minecraft.network.chat.Component;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -182,7 +183,7 @@ public interface AudioSource {
                 }
 
                 @Override
-                public int read(byte[] b, int off, int len) throws IOException {
+                public int read(byte @NotNull [] b, int off, int len) throws IOException {
                     int value = super.read(b, off, len);
                     if (this.getRead() > MAX_SIZE) {
                         throw new IOException("File size was bigger than maximum allowed (got >= " + this.getRead() + ", limit was " + MAX_SIZE + ")");

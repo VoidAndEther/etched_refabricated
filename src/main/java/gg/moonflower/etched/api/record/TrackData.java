@@ -2,7 +2,7 @@ package gg.moonflower.etched.api.record;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import gg.moonflower.etched.core.Etched;
+import gg.moonflower.etched.Etched;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;

@@ -4,14 +4,15 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.datafixers.util.Pair;
 import gg.moonflower.etched.api.record.PlayableRecord;
 import gg.moonflower.etched.api.record.TrackData;
-import gg.moonflower.etched.common.component.DiscAppearanceComponent;
-import gg.moonflower.etched.common.component.MusicLabelComponent;
-import gg.moonflower.etched.common.menu.EtchingMenu;
-import gg.moonflower.etched.common.menu.UrlMenu;
-import gg.moonflower.etched.common.network.play.SetUrlPacket;
-import gg.moonflower.etched.core.Etched;
-import gg.moonflower.etched.core.registry.EtchedComponents;
-import gg.moonflower.etched.core.registry.EtchedItems;
+import gg.moonflower.etched.registry.component.DiscAppearanceComponent;
+import gg.moonflower.etched.registry.component.MusicLabelComponent;
+import gg.moonflower.etched.registry.menu.EtchingMenu;
+import gg.moonflower.etched.registry.menu.UrlMenu;
+import gg.moonflower.etched.registry.network.play.SetUrlPacket;
+import gg.moonflower.etched.Etched;
+import gg.moonflower.etched.registry.component.EtchedComponents;
+import gg.moonflower.etched.registry.item.EtchedItems;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
@@ -25,7 +26,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerListener;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +36,7 @@ import java.util.Objects;
  */
 public class EtchingScreen extends AbstractContainerScreen<EtchingMenu> implements ContainerListener, UrlMenu {
 
-    private static final ResourceLocation TEXTURE = Etched.etchedPath("textures/gui/container/etching_table.png");
+    private static final ResourceLocation TEXTURE = Etched.id("textures/gui/container/etching_table.png");
     private static final Component INVALID_URL = Component.translatable("screen." + Etched.MOD_ID + ".etching_table.error.invalid_url");
     private static final Component CANNOT_CREATE = Component.translatable("screen." + Etched.MOD_ID + ".etching_table.error.cannot_create");
     private static final Component CANNOT_CREATE_MISSING_DISC = Component.translatable("screen." + Etched.MOD_ID + ".etching_table.error.cannot_create.missing_disc").withStyle(ChatFormatting.GRAY);
@@ -73,7 +73,7 @@ public class EtchingScreen extends AbstractContainerScreen<EtchingMenu> implemen
         this.url.setMaxLength(32768);
         this.url.setResponder(value -> {
             if (!Objects.equals(this.oldUrl, value) && this.urlTicks <= 0) {
-                PacketDistributor.sendToServer(new SetUrlPacket(""));
+                ClientPlayNetworking.send(new SetUrlPacket(""));
             }
             this.urlTicks = 10;
         });
@@ -88,7 +88,7 @@ public class EtchingScreen extends AbstractContainerScreen<EtchingMenu> implemen
             this.urlTicks--;
             if (this.urlTicks <= 0 && !Objects.equals(this.oldUrl, this.url.getValue())) {
                 this.oldUrl = this.url.getValue();
-                PacketDistributor.sendToServer(new SetUrlPacket(this.url.getValue()));
+                ClientPlayNetworking.send(new SetUrlPacket(this.url.getValue()));
             }
         }
     }
@@ -106,7 +106,7 @@ public class EtchingScreen extends AbstractContainerScreen<EtchingMenu> implemen
         }
 
         boolean displayLabels = !this.discStack.isEmpty() && !menu.getSlot(1).getItem().isEmpty();
-        boolean editable = this.discStack.getItem() == EtchedItems.ETCHED_MUSIC_DISC.get() || displayLabels;
+        boolean editable = this.discStack.getItem() == EtchedItems.ETCHED_MUSIC_DISC || displayLabels;
         this.url.setEditable(editable);
         this.url.setVisible(editable);
         this.url.setFocused(editable);
@@ -129,7 +129,7 @@ public class EtchingScreen extends AbstractContainerScreen<EtchingMenu> implemen
     protected void renderTooltip(GuiGraphics guiGraphics, int x, int y) {
         super.renderTooltip(guiGraphics, x, y);
 
-        boolean isEtched = this.discStack.is(EtchedItems.ETCHED_MUSIC_DISC.get());
+        boolean isEtched = this.discStack.is(EtchedItems.ETCHED_MUSIC_DISC);
         List<FormattedCharSequence> reasonLines = new ArrayList<>();
         if (!isEtched && !this.discStack.isEmpty() && this.labelStack.isEmpty()) {
             reasonLines.add(CANNOT_CREATE.getVisualOrderText());
@@ -152,11 +152,11 @@ public class EtchingScreen extends AbstractContainerScreen<EtchingMenu> implemen
     @Override
     protected void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
         guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
-        if ((!this.url.getValue().isEmpty() && !TrackData.isValidURL(this.url.getValue())) || !this.invalidReason.isEmpty() || (this.discStack.getItem() != EtchedItems.ETCHED_MUSIC_DISC.get() && ((!this.discStack.isEmpty() && this.labelStack.isEmpty()) || (this.discStack.isEmpty() && !this.labelStack.isEmpty())))) {
+        if ((!this.url.getValue().isEmpty() && !TrackData.isValidURL(this.url.getValue())) || !this.invalidReason.isEmpty() || (this.discStack.getItem() != EtchedItems.ETCHED_MUSIC_DISC && ((!this.discStack.isEmpty() && this.labelStack.isEmpty()) || (this.discStack.isEmpty() && !this.labelStack.isEmpty())))) {
             guiGraphics.blit(TEXTURE, this.leftPos + 83, this.topPos + 44, 0, 226, 27, 17);
         }
 
-        guiGraphics.blit(TEXTURE, this.leftPos + 9, this.topPos + 21, 0, (this.discStack.getItem() == EtchedItems.ETCHED_MUSIC_DISC.get() || (!this.discStack.isEmpty() && !this.labelStack.isEmpty()) ? 180 : 196), 158, 16);
+        guiGraphics.blit(TEXTURE, this.leftPos + 9, this.topPos + 21, 0, (this.discStack.getItem() == EtchedItems.ETCHED_MUSIC_DISC || (!this.discStack.isEmpty() && !this.labelStack.isEmpty()) ? 180 : 196), 158, 16);
 
         if (this.displayLabels) {
             DiscAppearanceComponent.LabelPattern[] patterns = DiscAppearanceComponent.LabelPattern.values();

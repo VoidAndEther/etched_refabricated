@@ -1,10 +1,10 @@
 package gg.moonflower.etched.client.screen;
 
-import gg.moonflower.etched.common.menu.RadioMenu;
-import gg.moonflower.etched.common.menu.UrlMenu;
-import gg.moonflower.etched.common.network.play.SetUrlPacket;
-import gg.moonflower.etched.core.Etched;
-import net.minecraft.client.Minecraft;
+import gg.moonflower.etched.registry.menu.RadioMenu;
+import gg.moonflower.etched.registry.menu.UrlMenu;
+import gg.moonflower.etched.registry.network.play.SetUrlPacket;
+import gg.moonflower.etched.Etched;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -13,7 +13,6 @@ import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
 
@@ -22,7 +21,7 @@ import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
  */
 public class RadioScreen extends AbstractContainerScreen<RadioMenu> implements UrlMenu {
 
-    private static final ResourceLocation TEXTURE = Etched.etchedPath("textures/gui/radio.png");
+    private static final ResourceLocation TEXTURE = Etched.id("textures/gui/radio.png");
 
     private EditBox url;
 
@@ -44,8 +43,10 @@ public class RadioScreen extends AbstractContainerScreen<RadioMenu> implements U
         this.setFocused(this.url);
         this.addRenderableWidget(this.url);
         this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> {
-            PacketDistributor.sendToServer(new SetUrlPacket(this.url.getValue()));
-            Minecraft.getInstance().player.closeContainer();
+            ClientPlayNetworking.send(new SetUrlPacket(this.url.getValue()));
+            if (minecraft != null && minecraft.player != null) {
+                minecraft.player.closeContainer();
+            }
         }).bounds((this.width - this.imageWidth) / 2, (this.height - this.imageHeight) / 2 + this.imageHeight + 5, this.imageWidth, 20).build());
     }
 

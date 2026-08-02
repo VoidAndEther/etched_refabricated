@@ -44,7 +44,7 @@ public final class SoundSourceManager {
      *
      * @param source The source to add
      */
-    public static synchronized void registerSource(SoundDownloadSource source) {
+    public static synchronized void register(SoundDownloadSource source) {
         SOURCES.add(source);
     }
 
