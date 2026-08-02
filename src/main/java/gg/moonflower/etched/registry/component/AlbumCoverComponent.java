@@ -64,10 +64,6 @@ public class AlbumCoverComponent implements TooltipProvider {
         }
     }
 
-    public ItemStack getRecord(int slot) {
-        return slot >= 0 && slot < this.items.size() ? this.items.get(slot) : ItemStack.EMPTY;
-    }
-
     public ItemStack getCoverStack() {
         return this.coverStack;
     }

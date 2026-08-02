@@ -204,19 +204,6 @@ public final class PlayableRecord {
     }
 
     /**
-     * Creates the sound for an entity with the default attenuation distance.
-     *
-     * @param stack  The stack to play
-     * @param entity The entity to play the sound for
-     * @param track  The track to play on the disc
-     * @return The sound to play or nothing to error
-     */
-    @Environment(EnvType.CLIENT)
-    public static Optional<SoundInstance> createEntitySound(ItemStack stack, Entity entity, int track) {
-        return createEntitySound(stack, entity, track, 16);
-    }
-
-    /**
      * Creates the sound for an entity.
      *
      * @param stack               The stack to play

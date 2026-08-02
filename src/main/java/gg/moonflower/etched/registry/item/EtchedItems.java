@@ -14,8 +14,7 @@ import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Item.Properties;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.ItemLike;
-import java.util.Arrays;
+
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;

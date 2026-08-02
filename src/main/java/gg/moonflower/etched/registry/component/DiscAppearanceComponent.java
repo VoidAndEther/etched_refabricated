@@ -88,7 +88,7 @@ public record DiscAppearanceComponent(LabelPattern pattern, int discColor, int l
         }
         return -1;
     }
-    public static float getOrdinal(ItemStack stack, ClientLevel level, LivingEntity entity, int index) {
+    public static float getOrdinal(ItemStack stack, ClientLevel ignoredLevel, LivingEntity ignoredEntity, int ignoredIndex) {
         DiscAppearanceComponent discAppearance = stack.get(EtchedComponents.DISC_APPEARANCE);
         if (discAppearance != null) {
             return discAppearance.pattern().ordinal();

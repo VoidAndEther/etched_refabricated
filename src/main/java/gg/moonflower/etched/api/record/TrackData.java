@@ -104,10 +104,6 @@ public record TrackData(String url, String artist, Component title) {
         return new TrackData(this.url, this.artist, Component.literal(title));
     }
 
-    public TrackData withTitle(Component title) {
-        return new TrackData(this.url, this.artist, title);
-    }
-
     /**
      * @return The name to show as the record title
      */

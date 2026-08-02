@@ -179,7 +179,7 @@ public class BoomboxItem extends Item implements ContainerItem {
         return null;
     }
 
-    public static float getPlayingHandIndex(ItemStack stack, ClientLevel level, LivingEntity entity, int index) {
+    public static float getPlayingHandIndex(ItemStack stack, ClientLevel ignoredLevel, LivingEntity entity, int ignoredIndex) {
         InteractionHand hand = entity != null ? BoomboxItem.getPlayingHand(entity) : null;
         return hand != null && stack == entity.getItemInHand(hand) ? 1 : 0;
     }

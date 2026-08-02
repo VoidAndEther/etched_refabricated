@@ -84,10 +84,6 @@ public record MusicLabelComponent(String artist, String title, int primaryColor,
         return new MusicLabelComponent(author, this.title, this.primaryColor, this.secondaryColor);
     }
 
-    public MusicLabelComponent withTitle(String title) {
-        return new MusicLabelComponent(this.artist, title, this.primaryColor, this.secondaryColor);
-    }
-
     public MusicLabelComponent withInfo(String artist, String title) {
         return new MusicLabelComponent(artist, title, this.primaryColor, this.secondaryColor);
     }

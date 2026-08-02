@@ -1,6 +1,5 @@
 package gg.moonflower.etched.registry.network;
 
-import gg.moonflower.etched.Etched;
 import gg.moonflower.etched.registry.network.play.*;
 import gg.moonflower.etched.registry.network.play.handler.EtchedClientPlayPacketHandler;
 import gg.moonflower.etched.registry.network.play.handler.EtchedServerPlayPacketHandler;

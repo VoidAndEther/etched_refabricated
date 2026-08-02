@@ -10,7 +10,6 @@ import gg.moonflower.etched.registry.block.EtchedBlocks;
 import gg.moonflower.etched.registry.component.DiscAppearanceComponent;
 import gg.moonflower.etched.registry.component.MusicLabelComponent;
 import gg.moonflower.etched.registry.item.BoomboxItem;
-import gg.moonflower.etched.registry.component.EtchedComponents;
 import gg.moonflower.etched.registry.entity.EtchedEntities;
 import gg.moonflower.etched.registry.item.EtchedItems;
 import gg.moonflower.etched.registry.item.MusicLabelItem;
@@ -29,8 +28,6 @@ import net.minecraft.client.model.MinecartModel;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.server.packs.PackType;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.item.component.DyedItemColor;
 
 public class EtchedClient implements ClientModInitializer {
     @Override

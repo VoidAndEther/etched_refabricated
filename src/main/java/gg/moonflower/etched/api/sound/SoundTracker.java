@@ -52,7 +52,6 @@ public class SoundTracker {
     private static final Int2ObjectArrayMap<SoundInstance> ENTITY_PLAYING_SOUNDS = new Int2ObjectArrayMap<>();
     private static final Set<String> FAILED_URLS = new HashSet<>();
     private static final Component RADIO = Component.translatable("sound_source." + Etched.MOD_ID + ".radio");
-    private static final Logger log = LoggerFactory.getLogger(SoundTracker.class);
 
     static {
         ClientLoginConnectionEvents.DISCONNECT.register(SoundTracker::onLoginDisconnect);
