@@ -1,4 +1,4 @@
-package gg.moonflower.etched.mixin;
+package gg.moonflower.etched.mixin.entity;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import gg.moonflower.etched.registry.entity.WorkAtNoteBlock;

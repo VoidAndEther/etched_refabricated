@@ -1,9 +1,25 @@
-<br>
-<a href="https://github.com/jacksonhardaway/etched">
-<img src="https://raw.githubusercontent.com/VoidAndEther/etched_refabricated/221c5e0ad049100c13a4cdb3d94507fc461fd3ba/readMeAssets/EtchedRefab.svg" alt="Etched Refabricated logo this is an unofficial port to fabric 1.21.X" width="488" height="68">
-</a>
-<br>
-
-## WIP
+<style>
+div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+a {
+    font-size: 40px;
+    text-decoration: none;
+    color: white;
+}
+p {
+    font-size: 16px;
+    margin: 0;
+    color: white;
+}
+</style>
+<b>
+    <div>
+        <a href="https://github.com/jacksonhardaway/etched">Etched: Refabricated</a>
+        <p>This is an unofficial port of etched to fabric 1.21.1</p>
+    </div>
+</b>
 
 

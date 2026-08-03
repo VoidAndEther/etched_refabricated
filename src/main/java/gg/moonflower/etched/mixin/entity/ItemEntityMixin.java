@@ -1,4 +1,4 @@
-package gg.moonflower.etched.mixin;
+package gg.moonflower.etched.mixin.entity;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
